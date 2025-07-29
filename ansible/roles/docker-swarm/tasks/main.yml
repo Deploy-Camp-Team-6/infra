@@ -1,0 +1,110 @@
+---
+- name: Check if Swarm is already initialized
+  docker_swarm_info:
+  register: swarm_info
+  ignore_errors: yes
+
+- name: Initialize Docker Swarm
+  docker_swarm:
+    state: present
+    advertise_addr: "{{ docker_swarm_addr }}"
+    listen_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+  register: swarm_init
+  when: not swarm_info.can_talk_to_docker or not swarm_info.docker_swarm_active
+
+- name: Get Swarm info after initialization
+  docker_swarm_info:
+  register: swarm_facts
+
+- name: Create overlay networks
+  docker_network:
+    name: "{{ item }}"
+    driver: overlay
+    attachable: yes
+    scope: swarm
+  loop:
+    - traefik-public
+    - monitoring
+    - portainer-agent
+
+- name: Get node self ID
+  shell: docker node inspect self --format '{{ '{{' }}.ID{{ '}}' }}'
+  register: node_self_id
+  changed_when: false
+  when: node_role == 'manager'
+  ignore_errors: yes
+
+- name: Get node hostname from ID
+  shell: docker node inspect {{ node_self_id.stdout }} --format '{{ '{{' }}.Description.Hostname{{ '}}' }}'
+  register: node_hostname
+  changed_when: false
+  when: node_self_id is defined and node_self_id.rc == 0
+  ignore_errors: yes
+
+- name: Label manager nodes
+  docker_node:
+    hostname: "{{ node_hostname.stdout }}"
+    labels:
+      node.role: manager
+      monitoring: "true"
+  when: 
+    - node_role == 'manager'
+    - node_hostname is defined 
+    - node_hostname.rc == 0
+    - node_hostname.stdout | length > 0
+
+- name: Create Docker secrets directory
+  file:
+    path: "{{ docker_secrets_dir }}"
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Ensure secrets directory is writable
+  file:
+    path: "{{ docker_secrets_dir }}"
+    mode: '0700'
+    owner: root
+    group: root
+  become: yes
+
+- name: Create Docker secrets from Vault
+  docker_secret:
+    name: "{{ item.name }}"
+    data: "{{ item.data }}"
+    state: present
+  loop:
+    - { name: 'grafana_admin_password', data: '{{ grafana_admin_password }}' }
+    - { name: 'portainer_admin_password', data: '{{ portainer_admin_password }}' }
+  no_log: true
+
+- name: Save credentials to file
+  template:
+    src: credentials.txt.j2
+    dest: "{{ docker_secrets_dir }}/credentials.txt"
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+
+- name: Create stack deployment script
+  template:
+    src: deploy-stacks.sh.j2
+    dest: /usr/local/bin/deploy-stacks.sh
+    mode: '0755'
+
+- name: Display Swarm join token for workers
+  debug:
+    msg: |
+      Swarm initialized successfully!
+      Worker token: {{ swarm_facts.swarm_facts.JoinTokens.Worker }}
+      Manager token: {{ swarm_facts.swarm_facts.JoinTokens.Manager }}
+      
+      To join workers, run:
+      docker swarm join --token {{ swarm_facts.swarm_facts.JoinTokens.Worker }} {{ docker_swarm_addr }}:{{ docker_swarm_port }}
+  when: 
+    - swarm_facts is defined 
+    - swarm_facts.swarm_facts is defined 
+    - swarm_facts.swarm_facts.JoinTokens is defined
+    - (swarm_init is defined and swarm_init.changed) or (swarm_facts.docker_swarm_active | bool)

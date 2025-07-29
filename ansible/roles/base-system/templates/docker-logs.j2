@@ -1,0 +1,14 @@
+# Rotate Docker container logs
+/var/lib/docker/containers/*/*.log {
+  rotate 7
+  daily
+  compress
+  delaycompress
+  missingok
+  copytruncate
+  maxsize 100M
+  notifempty
+  dateext
+  dateformat -%Y%m%d-%s
+  create 0644 root root
+}

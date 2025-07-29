@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  agent:
+    image: portainer/agent:{{ portainer_version }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - portainer-agent
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+
+  portainer:
+    image: portainer/portainer-ce:{{ portainer_version }}
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
+      - {{ docker_data_dir }}/portainer:/data
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    networks:
+      - portainer-agent
+      - traefik-public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.portainer.rule=Host(`{{ portainer_domain }}`)
+        - traefik.http.routers.portainer.entrypoints=websecure
+        - traefik.http.routers.portainer.tls.certresolver=le
+        - traefik.http.services.portainer.loadbalancer.server.port=9000
+        # Portainer API
+        - traefik.http.routers.portainer-api.rule=Host(`{{ portainer_domain }}`) && PathPrefix(`/api`)
+        - traefik.http.routers.portainer-api.entrypoints=websecure
+        - traefik.http.routers.portainer-api.tls.certresolver=le
+        - traefik.http.services.portainer-api.loadbalancer.server.port=9000
+
+networks:
+  portainer-agent:
+    external: true
+  traefik-public:
+    external: true

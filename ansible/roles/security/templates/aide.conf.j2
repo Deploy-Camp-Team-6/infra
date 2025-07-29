@@ -1,0 +1,113 @@
+# AIDE configuration file
+# This file is managed by Ansible - DO NOT EDIT MANUALLY
+
+# The location of the AIDE database
+@@define DBDIR /var/lib/aide
+
+# The location of the AIDE log file
+@@define LOGDIR /var/log/aide
+
+# The location of the AIDE binary
+@@define BIN /usr/bin/aide
+
+# Database file
+database=file:@@{DBDIR}/aide.db
+
+# Database before update
+database_new=file:@@{DBDIR}/aide.db.new
+
+database_out=file:@@{DBDIR}/aide.db.new
+
+gzip_dbout=no
+verbose=5
+report_url=file:@@{LOGDIR}/aide.log
+report_url=stdout
+
+# Define what to check and how to check it
+# Basic file attributes
+PERMS = p+u+g+acl+selinux+xattrs+md5
+
+# Log files that change often
+LOG = p+u+g+acl+selinux+xattrs
+
+# Configuration files that change rarely
+CONFIG = p+u+g+acl+selinux+xattrs+md5
+
+# Directories that should always be checked
+DIR = p+u+g+acl+selinux+xattrs
+
+# Files that should be ignored
+NORMAL = p+u+g+acl+selinux+xattrs+md5
+DATAONLY = p+u+g+acl+selinux+xattrs+md5+sha256
+
+# Rules for specific directories
+/etc NORMAL
+/bin NORMAL
+/sbin NORMAL
+/usr/bin NORMAL
+/usr/sbin NORMAL
+/usr/local/bin NORMAL
+/usr/local/sbin NORMAL
+/boot CONFIG
+/lib NORMAL
+/lib64 NORMAL
+/opt NORMAL
+/root NORMAL
+/usr/lib NORMAL
+/usr/lib64 NORMAL
+/usr/src NORMAL
+/var/log LOG
+/var/spool NORMAL
+/var/www NORMAL
+
+# Exclude directories that change frequently or contain temporary files
+!/proc
+!/sys
+!/tmp
+!/var/tmp
+!/var/run
+!/var/spool/postfix/private
+!/var/spool/postfix/public
+!/var/cache
+!/var/lib/apt/lists
+!/var/lib/dpkg
+!/var/lib/snapd
+
+# Exclude package manager files
+!/var/lib/apt
+!/var/lib/dpkg
+!/var/lib/aptitude
+
+# Exclude log files that change frequently
+!/var/log/*
+
+# Exclude temporary files
+!/tmp/*
+!/var/tmp/*
+
+# Exclude user home directories (uncomment if needed)
+# !/home/*
+
+# Exclude Docker specific directories
+!/var/lib/docker
+!/run/containers
+
+# Exclude systemd journal
+!/var/log/journal
+
+# Exclude cloud-init
+!/var/lib/cloud
+
+# Exclude Kubernetes/container runtime directories
+!/var/lib/kubelet
+!/var/lib/containerd
+!/var/lib/etcd
+
+# Exclude SSL certificates (they change frequently)
+!/etc/letsencrypt/archive
+!/etc/letsencrypt/keys
+!/etc/letsencrypt/renewal
+!/etc/letsencrypt/live/*/privkey.pem
+!/etc/letsencrypt/live/*/cert.pem
+!/etc/letsencrypt/live/*/chain.pem
+!/etc/letsencrypt/live/*/fullchain.pem

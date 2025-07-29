@@ -1,0 +1,61 @@
+---
+- name: Create Traefik directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ docker_data_dir }}/traefik"
+    - "{{ docker_data_dir }}/traefik/dynamic"
+    - "{{ docker_data_dir }}/traefik/logs"
+
+- name: Create Traefik configuration
+  template:
+    src: traefik.yml.j2
+    dest: "{{ docker_data_dir }}/traefik/traefik.yml"
+    mode: '0644'
+
+- name: Create Traefik dynamic configuration
+  template:
+    src: dynamic.yml.j2
+    dest: "{{ docker_data_dir }}/traefik/dynamic/dynamic.yml"
+    mode: '0644'
+
+- name: Create acme.json file
+  file:
+    path: "{{ docker_data_dir }}/traefik/acme.json"
+    state: touch
+    mode: '0600'
+
+- name: Create Traefik stack compose file
+  template:
+    src: traefik-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/traefik-stack.yml"
+    mode: '0644'
+
+- name: Deploy Traefik stack
+  command: docker stack deploy -c {{ docker_compose_dir }}/traefik-stack.yml traefik
+  args:
+    chdir: "{{ docker_compose_dir }}"
+  register: traefik_deploy
+  changed_when: "'Nothing to do' not in traefik_deploy.stderr"
+  failed_when: 
+    - traefik_deploy.rc != 0
+    - "'Nothing to do' not in traefik_deploy.stderr"
+
+- name: Wait for Traefik to be ready
+  uri:
+    url: "http://{{ ansible_default_ipv4.address }}:8080/ping"
+    method: GET
+    status_code: 200
+  retries: 30
+  delay: 5
+  register: traefik_health
+  until: traefik_health.status == 200
+
+- name: Display Traefik information
+  debug:
+    msg: |
+      Traefik deployed successfully!
+      Dashboard: http://{{ ansible_default_ipv4.address }}:8080
+      API endpoint: http://{{ ansible_default_ipv4.address }}:8080/api

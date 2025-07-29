@@ -1,0 +1,67 @@
+---
+# Domain Configuration
+base_domain: "benelabs.fun"
+traefik_domain: "traefik.{{ base_domain }}"
+grafana_domain: "grafana.{{ base_domain }}"
+portainer_domain: "portainer.{{ base_domain }}"
+prometheus_domain: "prometheus.{{ base_domain }}"
+
+# System Configuration
+timezone: "UTC"
+ntp_servers:
+  - "pool.ntp.org"
+  - "time.cloudflare.com"
+
+# Security Configuration
+ssh_port: 22
+allowed_ssh_users:
+  - ubuntu
+  - deploy
+fail2ban_enabled: true
+
+# UFW Firewall Rules
+ufw_rules:
+  - { rule: 'allow', port: '{{ ssh_port }}', proto: 'tcp' }
+  - { rule: 'allow', port: '80', proto: 'tcp' }
+  - { rule: 'allow', port: '443', proto: 'tcp' }
+  - { rule: 'allow', port: '2377', proto: 'tcp' }  # Docker Swarm
+  - { rule: 'allow', port: '7946', proto: 'tcp' }  # Docker Swarm
+  - { rule: 'allow', port: '7946', proto: 'udp' }  # Docker Swarm
+  - { rule: 'allow', port: '4789', proto: 'udp' }  # Docker Overlay
+
+# Docker Configuration
+docker_edition: ce
+docker_package: "docker-{{ docker_edition }}"
+docker_users:
+  - ubuntu
+  - deploy
+
+# Docker Swarm Configuration
+docker_swarm_addr: "{{ ansible_default_ipv4.address }}"
+docker_swarm_port: 2377
+
+# Directory Structure
+docker_dir: "/opt/docker"
+docker_compose_dir: "{{ docker_dir }}/compose"
+docker_secrets_dir: "{{ docker_dir }}/secrets"
+docker_data_dir: "{{ docker_dir }}/data"
+
+# Traefik Configuration
+traefik_version: "v3.0"
+traefik_log_level: "INFO"
+acme_email: "bensatriya3@gmail.com"
+
+# Monitoring Configuration
+grafana_version: "latest"
+prometheus_version: "latest"
+node_exporter_version: "latest"
+cadvisor_version: "latest"
+alertmanager_version: "latest"
+
+# Portainer Configuration
+portainer_version: "latest"
+
+# Logging Configuration
+log_driver: "json-file"
+log_max_size: "10m"
+log_max_file: "3"

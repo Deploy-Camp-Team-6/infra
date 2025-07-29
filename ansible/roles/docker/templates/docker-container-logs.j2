@@ -1,0 +1,33 @@
+# Docker container log rotation configuration
+# This file is managed by Ansible - DO NOT EDIT MANUALLY
+
+# Logs from all containers
+/var/lib/docker/containers/*/*.log {
+    # Rotate daily
+    daily
+    # Keep 7 days of logs
+    rotate 7
+    # Compress rotated logs with gzip
+    compress
+    # Delay compression until next rotation
+    delaycompress
+    # Skip if the log file is missing
+    missingok
+    # Don't rotate empty logs
+    notifempty
+    # Create new log files with specified permissions
+    create 0640 root docker
+    # Maximum log file size before rotation (100MB)
+    maxsize 100M
+    # Rotate if log file is over 100MB, even if not a day has passed
+    size 100M
+    # Don't rotate the log if it's still growing and is smaller than 100MB
+    nocreate
+    # Don't run postrotate if no logs were rotated
+    sharedscripts
+    # Send SIGHUP to Docker daemon to reopen log files
+    postrotate
+        # Reload Docker daemon to ensure it's using the new log files
+        systemctl reload docker.service || true
+    endscript
+}

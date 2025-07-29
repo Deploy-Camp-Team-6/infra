@@ -1,0 +1,102 @@
+---
+- name: Remove old Docker packages
+  apt:
+    name:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install Docker
+  apt:
+    name:
+      - "{{ docker_package }}"
+      - docker-compose-plugin
+      - containerd.io
+    state: present
+    update_cache: yes
+
+- name: Add users to docker group
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  loop: "{{ docker_users }}"
+
+- name: Create Docker daemon configuration
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    backup: yes
+  notify: restart docker
+
+- name: Create Docker service override directory
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure Docker service limits
+  template:
+    src: docker-service-override.conf.j2
+    dest: /etc/systemd/system/docker.service.d/override.conf
+  notify:
+    - reload systemd
+    - restart docker
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Ensure pip3 is installed
+  apt:
+    name: python3-pip
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Install Docker Python library
+  pip:
+    name:
+      - docker
+      - docker-compose
+    state: present
+    executable: pip3
+  become: yes
+
+- name: Create Docker maintenance script
+  template:
+    src: docker-maintenance.sh.j2
+    dest: /usr/local/bin/docker-maintenance.sh
+    mode: '0755'
+
+- name: Schedule Docker maintenance
+  cron:
+    name: "Docker maintenance"
+    minute: "0"
+    hour: "3"
+    weekday: "0"
+    job: "/usr/local/bin/docker-maintenance.sh"
+
+- name: Configure Docker log rotation
+  template:
+    src: docker-container-logs.j2
+    dest: /etc/logrotate.d/docker-container-logs
+    mode: '0644'
+
+# Network creation moved to docker-swarm role

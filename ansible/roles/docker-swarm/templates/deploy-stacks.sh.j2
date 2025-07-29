@@ -1,0 +1,60 @@
+#!/bin/bash
+# Docker Swarm Stack Deployment Script
+# Generated on {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+# This script deploys all Docker stacks in the /opt/docker/stacks directory
+
+set -e
+
+# Set environment variables
+export DOCKER_HOST=unix:///var/run/docker.sock
+export STACKS_DIR="/opt/docker/stacks"
+
+echo "=== Starting Docker Stack Deployment ==="
+echo "Current Docker Swarm Node: $(hostname)"
+echo "Docker Version: $(docker version --format '{{ '{{' }}.Server.Version{{ '}}' }}')"
+
+# Function to deploy a stack
+deploy_stack() {
+    local stack_name="$1"
+    local compose_file="$2"
+    
+    echo -e "\n=== Deploying $stack_name stack ==="
+    if [ ! -f "$compose_file" ]; then
+        echo "Error: Compose file not found: $compose_file"
+        return 1
+    fi
+    
+    # Check if stack exists
+    if docker stack ls | grep -q "$stack_name"; then
+        echo "Updating existing $stack_name stack..."
+        docker stack deploy -c "$compose_file" "$stack_name"
+    else
+        echo "Creating new $stack_name stack..."
+        docker stack deploy -c "$compose_file" "$stack_name"
+    fi
+    
+    echo "$stack_name stack deployed successfully!"
+}
+
+# Deploy monitoring stack
+if [ -d "$STACKS_DIR/monitoring" ]; then
+    deploy_stack "monitoring" "$STACKS_DIR/monitoring/docker-compose.yml"
+fi
+
+# Deploy logging stack
+if [ -d "$STACKS_DIR/logging" ]; then
+    deploy_stack "logging" "$STACKS_DIR/logging/docker-compose.yml"
+fi
+
+# Deploy portainer
+if [ -d "$STACKS_DIR/portainer" ]; then
+    deploy_stack "portainer" "$STACKS_DIR/portainer/docker-compose.yml"
+fi
+
+echo -e "\n=== Stack Deployment Summary ==="
+docker stack ls
+
+echo -e "\n=== Service Status ==="
+docker service ls
+
+echo -e "\n=== Deployment completed at $(date) ==="

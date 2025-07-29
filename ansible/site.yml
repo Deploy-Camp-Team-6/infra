@@ -1,0 +1,37 @@
+---
+- name: Provision Docker Swarm Infrastructure
+  hosts: swarm_managers
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml  # Should be encrypted with ansible-vault
+  
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+  
+  roles:
+    - base-system
+    - security
+    - docker
+    - docker-swarm
+    - traefik
+    - monitoring
+    - portainer
+
+  post_tasks:
+    - name: Display deployment summary
+      debug:
+        msg: |
+          ======================================
+          Deployment Complete!
+          ======================================
+          Traefik Dashboard: https://{{ traefik_domain }}
+          Grafana: https://{{ grafana_domain }}
+          Portainer: https://{{ portainer_domain }}
+          
+          Access credentials are stored in /opt/docker/secrets/
+          ======================================

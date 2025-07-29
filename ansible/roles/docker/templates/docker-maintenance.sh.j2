@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Docker maintenance script
+set -e
+
+echo "Starting Docker maintenance - $(date)"
+
+# Remove unused containers
+echo "Removing stopped containers..."
+docker container prune -f
+
+# Remove unused images
+echo "Removing unused images..."
+docker image prune -a -f
+
+# Remove unused volumes
+echo "Removing unused volumes..."
+docker volume prune -f
+
+# Remove unused networks
+echo "Removing unused networks..."
+docker network prune -f
+
+# Clean up build cache
+echo "Cleaning build cache..."
+docker builder prune -a -f
+
+# Log disk usage
+echo "Docker disk usage after cleanup:"
+docker system df
+
+echo "Docker maintenance completed - $(date)"

@@ -1,0 +1,123 @@
+---
+- name: Install security packages
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+    state: present
+
+# Optional package - install only if available
+- name: Install optional apt-listchanges
+  apt:
+    name: apt-listchanges
+    state: present
+  ignore_errors: yes
+  register: apt_listchanges_install
+  changed_when: false
+
+- name: Configure SSH hardening
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    backup: yes
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: restart ssh
+
+- name: Configure UFW defaults
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: 'deny' }
+    - { direction: 'outgoing', policy: 'allow' }
+
+- name: Configure UFW rules
+  ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop: "{{ ufw_rules }}"
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+- name: Configure fail2ban
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/fail2ban/{{ item }}"
+    backup: yes
+  loop:
+    - jail.local
+    - filter.d/docker-auth.conf
+  notify: restart fail2ban
+  when: fail2ban_enabled
+
+- name: Enable and start fail2ban
+  systemd:
+    name: fail2ban
+    enabled: yes
+    state: started
+  when: fail2ban_enabled
+
+- name: Configure automatic security updates
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/apt/apt.conf.d/{{ item }}"
+  loop:
+    - 50unattended-upgrades
+    - 20auto-upgrades
+
+- name: Create security audit script
+  template:
+    src: security-audit.sh.j2
+    dest: /usr/local/bin/security-audit.sh
+    mode: '0755'
+
+- name: Schedule security audit
+  cron:
+    name: "Daily security audit"
+    minute: "0"
+    hour: "2"
+    job: "/usr/local/bin/security-audit.sh"
+
+# Optional auditd installation - only if available in repositories
+- name: Install auditd if available
+  apt:
+    name: auditd
+    state: present
+  register: install_auditd
+  ignore_errors: yes
+  changed_when: false
+  when: security_auditd_enabled | default(true)
+
+- name: Configure audit rules
+  template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/audit.rules
+  notify: restart auditd
+  when: install_auditd is defined and install_auditd is success and security_auditd_enabled | default(true)
+
+- name: Disable unused network protocols
+  template:
+    src: blacklist-rare-network.conf.j2
+    dest: /etc/modprobe.d/blacklist-rare-network.conf
+
+- name: Ensure AIDE directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+  with_items:
+    - /etc/aide
+    - /var/lib/aide
+    - /var/log/aide
+
+- name: Set up file integrity monitoring
+  template:
+    src: aide.conf.j2
+    dest: /etc/aide/aide.conf
+  notify: initialize aide

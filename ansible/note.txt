@@ -1,0 +1,3 @@
+hello bene
+
+ansible swarm-manager-01 --become -m shell -a "systemctl list-units --type=service | grep -E 'ntp|timedate|timesync|chrony'"

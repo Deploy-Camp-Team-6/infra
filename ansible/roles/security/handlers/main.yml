@@ -1,0 +1,22 @@
+---
+- name: restart ssh
+  systemd:
+    name: ssh
+    state: restarted
+
+- name: restart fail2ban
+  systemd:
+    name: fail2ban
+    state: restarted
+
+- name: restart auditd
+  systemd:
+    name: auditd
+    state: restarted
+
+- name: initialize aide
+  command: aideinit
+  notify: move aide database
+
+- name: move aide database
+  command: mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db

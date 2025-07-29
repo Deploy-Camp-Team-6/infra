@@ -1,0 +1,64 @@
+# Traefik Dynamic Configuration
+# Generated on {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+
+# HTTP to HTTPS Redirect
+http:
+  middlewares:
+    # Redirect HTTP to HTTPS
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    
+    # Security Headers
+    security-headers:
+      headers:
+        sslRedirect: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 15552000
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslHost: "{{ traefik_domain | default('example.com') }}"
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+          Server: ""
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+    
+    # Rate Limiting
+    ratelimit:
+      rateLimit:
+        average: 100
+        burst: 50
+        
+    # Basic Auth for Dashboard (if enabled)
+    {% if traefik_basic_auth is defined and traefik_basic_auth %}
+    traefik-auth:
+      basicAuth:
+        users:
+          - "{{ traefik_basic_auth }}"
+    {% endif %}
+
+  # Default Routers
+  routers:
+    # Dashboard Router
+    traefik-dashboard:
+      rule: "Host(`traefik.{{ traefik_domain | default('example.com') }}`)"
+      service: api@internal
+      entryPoints:
+        - "websecure"
+      middlewares:
+        - security-headers
+        - ratelimit
+        {% if traefik_basic_auth is defined and traefik_basic_auth %}
+        - traefik-auth
+        {% endif %}
+      tls:
+        certResolver: letsencrypt
+        options: default
