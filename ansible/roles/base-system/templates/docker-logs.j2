@@ -1,14 +1,24 @@
-# Rotate Docker container logs
-/var/lib/docker/containers/*/*.log {
-  rotate 7
-  daily
-  compress
-  delaycompress
-  missingok
-  copytruncate
-  maxsize 100M
-  notifempty
-  dateext
-  dateformat -%Y%m%d-%s
-  create 0644 root root
+# Docker logs rotation configuration
+{{ docker_dir }}/*/logs/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+}
+
+# System docker logs
+/var/log/docker.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    postrotate
+        /bin/kill -USR1 $(cat /var/run/docker.pid 2>/dev/null) 2>/dev/null || true
+    endscript
 }

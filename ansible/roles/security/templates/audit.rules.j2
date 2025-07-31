@@ -1,0 +1,31 @@
+# Audit rules for system monitoring
+
+# Delete all existing rules
+-D
+
+# Buffer size
+-b 8192
+
+# Failure mode (0=silent, 1=printk, 2=panic)
+-f 1
+
+# Monitor authentication events
+-w /etc/passwd -p wa -k passwd_changes
+-w /etc/group -p wa -k group_changes
+-w /etc/shadow -p wa -k shadow_changes
+-w /etc/sudoers -p wa -k sudoers_changes
+
+# Monitor system calls
+-a always,exit -F arch=b64 -S execve -k exec
+-a always,exit -F arch=b32 -S execve -k exec
+
+# Monitor file access
+-w /etc/ssh/sshd_config -p wa -k ssh_config
+-w /var/log/auth.log -p wa -k auth_log
+
+# Monitor network configuration
+-w /etc/hosts -p wa -k network_config
+-w /etc/network/ -p wa -k network_config
+
+# Enable audit
+-e 1

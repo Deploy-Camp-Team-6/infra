@@ -1,62 +1,17 @@
-// Automatically upgrade packages from these (origin:archive) pairs
 Unattended-Upgrade::Allowed-Origins {
-        "${distro_id}:${distro_codename}";
-        "${distro_id}:${distro_codename}-security";
-        "${distro_id}ESM:${distro_codename}";
+    "${distro_id}:${distro_codename}";
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
 };
 
-// List of packages to not update
 Unattended-Upgrade::Package-Blacklist {
+    "kernel*";
+    "docker*";
 };
 
-// This option allows you to control if on a unclean dpkg exit
-// unattended-upgrades will automatically run 
-//   dpkg --force-confold --configure -a
-// The default is true, to ensure updates keep getting installed
-Unattended-Upgrade::AutoFixInterruptedDpkg "true";
-
-// Split the upgrade into the smallest possible chunks so that
-// they can be interrupted with SIGTERM. This makes the upgrade
-// a bit slower but it has the benefit that shutdown while a upgrade
-// is running is possible (with a small delay)
-Unattended-Upgrade::MinimalSteps "true";
-
-// Install all updates when the machine is shutting down
-// instead of doing it in the background while the machine is running
-// This will (obviously) make shutdown slower
-Unattended-Upgrade::InstallOnShutdown "false";
-
-// Send email to this address for problems or package upgrades
-// If empty or unset then no email is sent, make sure that you
-// have a working mail setup on your system. A package that provides
-// 'mailx' must be installed.
-//Unattended-Upgrade::Mail "";
-
-// Set this value to one of:
-//    "always", "only-on-error" or "on-change"
-// If mail is configured then always mail on error (default: on-change)
-//Unattended-Upgrade::MailReport "on-change";
-
-// Remove unused automatically installed kernel-related packages
-// (kernel images, kernel headers and kernel version locked tools).
-//Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
-
-// Do automatic removal of newly unused dependencies after the upgrade
-// (equivalent to apt-get autoremove)
-//Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
-
-// Automatically reboot *WITHOUT CONFIRMATION* if
-//  the file /var/run/reboot-required is found after the upgrade
-//Unattended-Upgrade::Automatic-Reboot "false";
-
-// Automatically reboot even if there are users currently logged in.
-//Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
-
-// If automatic reboot is enabled and needed, reboot at the specific
-// date/time instead of immediately
-//  Default: "now"
-//Unattended-Upgrade::Automatic-Reboot-Time "02:00";
-
-// Use apt bandwidth limit feature, this example limits the download
-// speed to 70kb/sec
-//Acquire::http::Dl-Limit "70";
+Unattended-Upgrade::DevRelease "false";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot-Time "02:00";

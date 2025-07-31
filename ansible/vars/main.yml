@@ -1,10 +1,11 @@
 ---
 # Domain Configuration
-base_domain: "benelabs.fun"
+base_domain: "fraudai.cloud"
 traefik_domain: "traefik.{{ base_domain }}"
 grafana_domain: "grafana.{{ base_domain }}"
 portainer_domain: "portainer.{{ base_domain }}"
 prometheus_domain: "prometheus.{{ base_domain }}"
+whoami_domain: "whoami.{{ base_domain }}"
 
 # System Configuration
 timezone: "UTC"
@@ -47,9 +48,10 @@ docker_secrets_dir: "{{ docker_dir }}/secrets"
 docker_data_dir: "{{ docker_dir }}/data"
 
 # Traefik Configuration
-traefik_version: "v3.0"
+traefik_version: "v3.1.2"
 traefik_log_level: "INFO"
 acme_email: "bensatriya3@gmail.com"
+traefik_admin_password: "{{ traefik_admin_password }}"
 
 # Monitoring Configuration
 grafana_version: "latest"

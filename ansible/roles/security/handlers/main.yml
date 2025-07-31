@@ -14,6 +14,11 @@
     name: auditd
     state: restarted
 
+- name: restart unattended-upgrades
+  systemd:
+    name: unattended-upgrades
+    state: restarted
+
 - name: initialize aide
   command: aideinit
   notify: move aide database
