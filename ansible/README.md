@@ -1,13 +1,14 @@
 # Docker Swarm Infrastructure Deployment
 
-This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik, monitoring stack (Prometheus/Grafana), and Portainer.
+This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik and Portainer.
 
 ## Prerequisites
 
 1. **Target Server**: Ubuntu 22.04 VPS with root/sudo access
 2. **Ansible Control Node**: Ansible 2.9+ installed
-3. **SSH Access**: Key-based authentication configured
-4. **Domain**: Domain name pointing to your VPS IP
+3. **SSH Access**: Key-based authentication configured between your control node and the target servers.
+4. **Domain**: A domain name pointing to your swarm manager's public IP.
+5. **Host Key Verification**: The SSH host keys of your target servers should be in your control node's `~/.ssh/known_hosts` file. This playbook enforces host key checking for security.
 
 ## Quick Start
 
@@ -20,14 +21,21 @@ cd docker-swarm-ansible
 
 ### 2. Update Inventory
 
-Edit `inventory/hosts.yml`:
+Edit `inventory/hosts.yml` with the IP addresses of your manager and worker nodes. For example:
 ```yaml
 swarm_managers:
   hosts:
     swarm-manager-01:
-      ansible_host: YOUR_VPS_IP
+      ansible_host: 192.0.2.10
       ansible_user: ubuntu
-      ansible_ssh_private_key_file: ~/.ssh/your_key
+      ansible_ssh_private_key_file: /path/to/your/key.pem
+
+swarm_workers:
+  hosts:
+    swarm-worker-01:
+      ansible_host: 192.0.2.20
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: /path/to/your/key.pem
 ```
 
 ### 3. Configure Variables
@@ -47,7 +55,7 @@ ansible-vault create vars/secrets.yml
 
 ```bash
 # Test connectivity
-ansible all -m ping
+ansible docker_nodes -m ping
 
 # Deploy everything
 ansible-playbook site.yml
@@ -60,9 +68,7 @@ ansible-playbook site.yml --tags "docker,traefik"
 
 After deployment:
 - **Traefik Dashboard**: `https://traefik.yourdomain.com`
-- **Grafana**: `https://grafana.yourdomain.com`
 - **Portainer**: `https://portainer.yourdomain.com`
-- **Prometheus**: `https://prometheus.yourdomain.com`
 
 ## Directory Structure
 
@@ -81,7 +87,6 @@ After deployment:
 │   ├── docker/
 │   ├── docker-swarm/
 │   ├── traefik/
-│   ├── monitoring/
 │   └── portainer/
 └── scripts/
     ├── deploy.sh
@@ -98,41 +103,31 @@ After deployment:
 - **Audit Logging**: System activity tracking
 - **Docker Security**: Non-root containers, secrets management
 
-## Monitoring Stack
-
-- **Prometheus**: Metrics collection and alerting
-- **Grafana**: Visualization dashboards
-- **Node Exporter**: Host metrics
-- **cAdvisor**: Container metrics
-- **AlertManager**: Alert routing
-
 ## Scaling to Multi-Node
 
-### Add Worker Nodes
+This playbook is designed to support multi-node clusters out of the box. To scale your swarm:
 
-1. Update inventory:
-```yaml
-swarm_workers:
-  hosts:
-    swarm-worker-01:
-      ansible_host: WORKER_IP
-      ansible_user: ubuntu
-      node_role: worker
-```
+1.  **Add Worker Nodes to Inventory**: Add your new worker nodes to the `swarm_workers` group in `inventory/hosts.yml`.
 
-2. Deploy to workers:
-```bash
-ansible-playbook site.yml --limit swarm_workers
-```
+    ```yaml
+    swarm_workers:
+      hosts:
+        swarm-worker-01:
+          ansible_host: YOUR_WORKER_1_IP
+          # ...
+        swarm-worker-02:
+          ansible_host: YOUR_WORKER_2_IP
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: /path/to/your/key.pem
+          node_role: worker
+          ansible_python_interpreter: /usr/bin/python3
+    ```
 
-3. Join workers to swarm:
-```bash
-# Get join token from manager
-docker swarm join-token worker
+2.  **Run the Playbook**: Re-run the main playbook. Ansible will automatically provision the new nodes and join them to the swarm.
 
-# On worker nodes
-docker swarm join --token <token> <manager-ip>:2377
-```
+    ```bash
+    ansible-playbook site.yml
+    ```
 
 ## Maintenance Scripts
 
@@ -146,7 +141,7 @@ set -e
 echo "Starting deployment..."
 
 # Test connectivity
-ansible all -m ping
+ansible docker_nodes -m ping
 
 # Deploy infrastructure
 ansible-playbook site.yml
@@ -154,7 +149,6 @@ ansible-playbook site.yml
 echo "Deployment completed!"
 echo "Access services at:"
 echo "- Traefik: https://traefik.yourdomain.com"
-echo "- Grafana: https://grafana.yourdomain.com"
 echo "- Portainer: https://portainer.yourdomain.com"
 ```
 
@@ -184,14 +178,10 @@ mkdir -p $BACKUP_DIR
 
 echo "Creating backup in $BACKUP_DIR"
 
-# Backup Docker volumes
-docker run --rm -v /opt/docker:/backup alpine tar czf /backup/docker-data.tar.gz /backup
-
-# Backup Grafana data
-docker run --rm -v grafana_data:/data -v $BACKUP_DIR:/backup alpine cp -r /data /backup/grafana
-
-# Backup Prometheus data
-docker run --rm -v prometheus_data:/data -v $BACKUP_DIR:/backup alpine cp -r /data /backup/prometheus
+# Backup Docker volumes (e.g., Portainer, Traefik)
+# This is a conceptual example. You should adapt it to back up the specific volumes you care about.
+docker run --rm -v portainer_data:/data -v $BACKUP_DIR:/backup alpine tar czf /backup/portainer_data.tar.gz -C /data .
+docker run --rm -v traefik_data:/data -v $BACKUP_DIR:/backup alpine tar czf /backup/traefik_data.tar.gz -C /data .
 
 echo "Backup completed: $BACKUP_DIR"
 ```
@@ -203,7 +193,6 @@ echo "Backup completed: $BACKUP_DIR"
 1. **Services not starting**: Check logs with `docker service logs <service>`
 2. **Network issues**: Verify overlay networks with `docker network ls`
 3. **SSL certificates**: Check Traefik logs for ACME challenges
-4. **Monitoring data**: Verify Prometheus targets are up
 
 ### Useful Commands
 
@@ -233,8 +222,7 @@ docker node promote <node_name>
 2. **Resource Limits**: Set memory/CPU limits for services
 3. **Health Checks**: Implement health checks for all services
 4. **Backup Strategy**: Regular backups of data volumes
-5. **Monitoring**: Set up alerting for critical metrics
-6. **Updates**: Regular security updates and image updates
+5. **Updates**: Regular security updates and image updates
 7. **Documentation**: Keep deployment docs updated
 
 ## Security Checklist

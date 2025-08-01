@@ -8,23 +8,19 @@
     - "{{ docker_data_dir }}/traefik"
     - "{{ docker_data_dir }}/traefik/logs"
 
-- name: Create Traefik stack compose file
-  template:
-    src: traefik-stack.yml.j2
-    dest: "{{ docker_compose_dir }}/traefik-stack.yml"
-    mode: '0644'
-
 - name: Generate basic auth hash for admin user
   shell: |
     docker run --rm httpd:2.4-alpine htpasswd -nbB admin "{{ traefik_admin_password }}" | sed 's/\$/\$\$/g'
   register: admin_auth_hash
   changed_when: false
 
-- name: Update compose file with auth hash
-  replace:
-    path: "{{ docker_compose_dir }}/traefik-stack.yml"
-    regexp: 'MATCH_FOR_AWK'
-    replace: "{{ admin_auth_hash.stdout }}"
+- name: Create Traefik stack compose file from template
+  template:
+    src: traefik-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/traefik-stack.yml"
+    mode: '0644'
+  vars:
+    traefik_admin_auth_hash: "{{ admin_auth_hash.stdout }}"
 
 - name: Deploy Traefik stack
   docker_stack:

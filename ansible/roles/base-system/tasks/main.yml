@@ -15,7 +15,7 @@
   changed_when: false
   ignore_errors: yes
 
-- name: Install essential packages (without jq first)
+- name: Install essential packages
   apt:
     name:
       - curl
@@ -35,58 +35,9 @@
       - ntp
       - logrotate
       - rsync
+      - jq
     state: present
     update_cache: yes
-
-- name: Install libonig5 dependency for jq
-  apt:
-    name: libonig5
-    state: present
-    update_cache: yes
-  ignore_errors: yes
-
-- name: Install jq package
-  apt:
-    name: jq
-    state: present
-    update_cache: yes
-  ignore_errors: yes
-
-- name: Install jq manually if package installation failed
-  block:
-    - name: Download jq binary
-      get_url:
-        url: "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64"
-        dest: /usr/local/bin/jq
-        mode: '0755'
-        owner: root
-        group: root
-      when: ansible_architecture == "x86_64"
-
-    - name: Download jq binary for ARM64
-      get_url:
-        url: "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux-arm64"
-        dest: /usr/local/bin/jq
-        mode: '0755'
-        owner: root
-        group: root
-      when: ansible_architecture == "aarch64"
-
-  rescue:
-    - name: Skip jq installation
-      debug:
-        msg: "jq installation failed, continuing without it"
-
-- name: Verify jq installation
-  command: jq --version
-  register: jq_version
-  changed_when: false
-  ignore_errors: yes
-
-- name: Display jq version
-  debug:
-    msg: "jq version: {{ jq_version.stdout }}"
-  when: jq_version.rc == 0
 
 - name: Configure NTP
   template:
@@ -129,8 +80,6 @@
     - "{{ docker_secrets_dir }}"
     - "{{ docker_data_dir }}"
     - "{{ docker_data_dir }}/traefik"
-    - "{{ docker_data_dir }}/grafana"
-    - "{{ docker_data_dir }}/prometheus"
     - "{{ docker_data_dir }}/portainer"
 
 - name: Create deploy user (without docker group initially)

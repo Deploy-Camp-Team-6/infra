@@ -55,7 +55,7 @@ services:
         - traefik.http.services.traefik.loadbalancer.server.port=8080
         - traefik.http.routers.traefik.tls.certresolver=leresolver
         - traefik.http.routers.traefik.entrypoints=websecure
-        - traefik.http.middlewares.admin-auth.basicauth.users=MATCH_FOR_AWK
+        - "traefik.http.middlewares.admin-auth.basicauth.users={{ traefik_admin_auth_hash }}"
         - traefik.http.routers.traefik.middlewares=admin-auth
 
   whoami:

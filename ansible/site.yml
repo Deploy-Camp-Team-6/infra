@@ -1,12 +1,12 @@
 ---
-- name: Provision Docker Swarm Infrastructure
-  hosts: swarm_managers
+- name: Provision all nodes
+  hosts: docker_nodes
   become: yes
   gather_facts: yes
   vars_files:
     - vars/main.yml
-    - vars/secrets.yml  # Should be encrypted with ansible-vault
-  
+    - vars/secrets.yml
+
   pre_tasks:
     - name: Update apt cache
       apt:
@@ -14,12 +14,22 @@
         cache_valid_time: 3600
   
   roles:
-    - base-system
-    - security
-    - docker
-    - docker-swarm
-    - traefik
-    - portainer
+    - role: base-system
+    - role: security
+    - role: docker
+
+- name: Initialize Swarm and Deploy Stacks on Managers
+  hosts: swarm_managers
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml
+
+  roles:
+    - role: docker-swarm
+    - role: traefik
+    - role: portainer
 
   post_tasks:
     - name: Display deployment summary
@@ -33,3 +43,26 @@
           
           Access credentials are stored in /opt/docker/secrets/
           ======================================
+
+- name: Join workers to the Swarm
+  hosts: swarm_workers
+  become: yes
+  gather_facts: no # Facts are already gathered in the first play
+
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml
+
+  tasks:
+    - name: Get worker join token from the manager
+      delegate_to: "{{ groups['swarm_managers'][0] }}"
+      run_once: true
+      docker_swarm_info:
+      register: swarm_info
+
+    - name: Join the swarm
+      docker_swarm:
+        state: join
+        token: "{{ swarm_info.swarm_facts.JoinTokens.Worker }}"
+        remote_addrs:
+          - "{{ hostvars[groups['swarm_managers'][0]]['ansible_host'] }}:{{ docker_swarm_port }}"
