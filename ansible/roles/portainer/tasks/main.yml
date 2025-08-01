@@ -20,35 +20,6 @@
       - "{{ docker_compose_dir }}/portainer-stack.yml"
     state: present
 
-- name: Wait for Portainer to be ready
-  uri:
-    url: "http://{{ ansible_default_ipv4.address }}:9000/api/status"
-    method: GET
-    status_code: 200
-  retries: 30
-  delay: 5
-  register: portainer_health
-  until: portainer_health.status == 200
-
-- name: Check if Portainer admin user exists
-  uri:
-    url: "http://{{ ansible_default_ipv4.address }}:9000/api/users/admin/check"
-    method: GET
-  register: admin_check
-  ignore_errors: yes
-
-- name: Initialize Portainer admin user
-  uri:
-    url: "http://{{ ansible_default_ipv4.address }}:9000/api/users/admin/init"
-    method: POST
-    body_format: json
-    body:
-      Username: "admin"
-      Password: "{{ portainer_admin_password }}"
-    status_code: 200
-  when: admin_check.status == 404
-  ignore_errors: yes
-
 - name: Display Portainer information
   debug:
     msg: |

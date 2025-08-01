@@ -1,5 +1,5 @@
 ---
-- name: Install security packages
+- name: Install core security packages
   apt:
     name:
       - ufw
@@ -7,14 +7,11 @@
       - unattended-upgrades
     state: present
 
-# Optional package - install only if available
-- name: Install optional apt-listchanges
+- name: Install apt-listchanges (optional)
   apt:
     name: apt-listchanges
     state: present
   ignore_errors: yes
-  register: apt_listchanges_install
-  changed_when: false
 
 - name: Configure SSH hardening
   template:
@@ -61,13 +58,18 @@
     state: started
   when: fail2ban_enabled
 
-- name: Configure automatic security updates
+- name: Configure unattended-upgrades
   template:
-    src: "{{ item }}.j2"
-    dest: "/etc/apt/apt.conf.d/{{ item }}"
-  loop:
-    - 50unattended-upgrades
-    - 20auto-upgrades
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: '0644'
+  notify: restart unattended-upgrades
+
+- name: Configure APT periodic updates
+  template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
 
 - name: Create security audit script
   template:
@@ -82,42 +84,42 @@
     hour: "2"
     job: "/usr/local/bin/security-audit.sh"
 
-# Optional auditd installation - only if available in repositories
-- name: Install auditd if available
+- name: Install auditd (optional)
   apt:
     name: auditd
     state: present
-  register: install_auditd
   ignore_errors: yes
-  changed_when: false
-  when: security_auditd_enabled | default(true)
+  register: auditd_install
 
 - name: Configure audit rules
   template:
     src: audit.rules.j2
     dest: /etc/audit/rules.d/audit.rules
   notify: restart auditd
-  when: install_auditd is defined and install_auditd is success and security_auditd_enabled | default(true)
+  when: auditd_install is succeeded
 
 - name: Disable unused network protocols
   template:
     src: blacklist-rare-network.conf.j2
     dest: /etc/modprobe.d/blacklist-rare-network.conf
 
-- name: Ensure AIDE directories exist
+- name: Install AIDE (optional)
+  apt:
+    name: aide
+    state: present
+  ignore_errors: yes
+  register: aide_install
+
+- name: Create AIDE directory
   file:
-    path: "{{ item }}"
+    path: /etc/aide
     state: directory
-    mode: '0750'
-    owner: root
-    group: root
-  with_items:
-    - /etc/aide
-    - /var/lib/aide
-    - /var/log/aide
+    mode: '0755'
+  when: aide_install is succeeded
 
 - name: Set up file integrity monitoring
   template:
     src: aide.conf.j2
     dest: /etc/aide/aide.conf
   notify: initialize aide
+  when: aide_install is succeeded

@@ -19,7 +19,6 @@
     - docker
     - docker-swarm
     - traefik
-    - monitoring
     - portainer
 
   post_tasks:
@@ -30,7 +29,6 @@
           Deployment Complete!
           ======================================
           Traefik Dashboard: https://{{ traefik_domain }}
-          Grafana: https://{{ grafana_domain }}
           Portainer: https://{{ portainer_domain }}
           
           Access credentials are stored in /opt/docker/secrets/

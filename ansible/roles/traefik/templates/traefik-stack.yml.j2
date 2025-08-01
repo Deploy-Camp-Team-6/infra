@@ -1,25 +1,25 @@
-version: '3.8'
+version: "3.8"
 
 services:
   traefik:
-    image: traefik:{{ traefik_version }}
+    image: traefik:{{ traefik_version | default('v3.1.2') }}
     command:
-      - --api.dashboard=true
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.swarmmode=true
-      - --providers.docker.network=traefik-public
-      - --providers.docker.exposedbydefault=false
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --providers.file.watch=true
+      - --log.level={{ traefik_log_level | default('INFO') }}
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.le.acme.email={{ acme_email }}
-      - --certificatesresolvers.le.acme.storage=/acme.json
-      - --certificatesresolvers.le.acme.httpchallenge=true
-      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-      - --log.level={{ traefik_log_level }}
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      - --providers.swarm.exposedbydefault=false
+      - --providers.swarm.network=traefik-public
+      - --api
+      - --certificatesresolvers.leresolver.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.leresolver.acme.email={{ acme_email }}
+      - --certificatesresolvers.leresolver.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.leresolver.acme.tlschallenge=true
       - --accesslog=true
+      - --accesslog.filepath=/logs/access.log
+      - --log.filepath=/logs/traefik.log
       - --metrics.prometheus=true
       - --metrics.prometheus.addentrypointslabels=true
       - --metrics.prometheus.addserviceslabels=true
@@ -30,35 +30,56 @@ services:
       - target: 443
         published: 443
         mode: host
-      - target: 8080
-        published: 8080
-        mode: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - {{ docker_data_dir }}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - {{ docker_data_dir }}/traefik/dynamic:/etc/traefik/dynamic:ro
-      - {{ docker_data_dir }}/traefik/acme.json:/acme.json
-      - {{ docker_data_dir }}/traefik/logs:/logs
     networks:
       - traefik-public
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certificates:/letsencrypt
+      - {{ docker_data_dir }}/traefik/logs:/logs
     deploy:
       mode: global
       placement:
         constraints:
-          - node.role == manager
+          - node.role==manager
+      resources:
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+        limits:
+          cpus: "1"
+          memory: 1G
       labels:
         - traefik.enable=true
-        - traefik.http.routers.api.rule=Host(`{{ traefik_domain }}`)
-        - traefik.http.routers.api.service=api@internal
-        - traefik.http.routers.api.middlewares=auth
-        - traefik.http.middlewares.auth.basicauth.users=admin:$2y$10$K8XvGwP8fRdqiHV8qN9k6.4.d.J8PtR6l9l9HMiRgbP9M9N9k6HMi
+        - traefik.http.routers.traefik.rule=Host(`{{ traefik_domain }}`)
+        - traefik.http.routers.traefik.service=api@internal
         - traefik.http.services.traefik.loadbalancer.server.port=8080
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+        - traefik.http.routers.traefik.tls.certresolver=leresolver
+        - traefik.http.routers.traefik.entrypoints=websecure
+        - traefik.http.middlewares.admin-auth.basicauth.users=MATCH_FOR_AWK
+        - traefik.http.routers.traefik.middlewares=admin-auth
+
+  whoami:
+    image: containous/whoami:v1.3.0
+    networks:
+      - traefik-public
+    command:
+      - --port=8082
+    deploy:
+      mode: replicated
+      replicas: 2
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.whoami.loadbalancer.server.port=8082
+        - traefik.http.routers.whoami.rule=Host(`{{ whoami_domain }}`)
+        - traefik.http.routers.whoami.entrypoints=websecure
+        - traefik.http.routers.whoami.tls=true
+        - traefik.http.routers.whoami.tls.certresolver=leresolver
+        # - traefik.http.routers.whoami.middlewares=admin-auth  # uncomment to enable auth
 
 networks:
   traefik-public:
+    driver: overlay
     external: true
+
+volumes:
+  traefik_certificates:

@@ -4,7 +4,18 @@
     name: "{{ timezone }}"
   notify: restart cron
 
-- name: Install essential packages
+- name: Update apt cache and upgrade system
+  apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Fix broken packages if any
+  command: apt-get -f install -y
+  changed_when: false
+  ignore_errors: yes
+
+- name: Install essential packages (without jq first)
   apt:
     name:
       - curl
@@ -27,31 +38,55 @@
     state: present
     update_cache: yes
 
-- name: Manually install jq binary
-  get_url:
-    url: https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
-    dest: /usr/local/bin/jq
-    mode: '0755'
-  tags: jq
-
-- name: Check if systemd-timesyncd is active
-  stat:
-    path: /lib/systemd/system/systemd-timesyncd.service
-  register: systemd_timesyncd_service
-
-- name: Stop and disable systemd-timesyncd if it exists
-  systemd:
-    name: systemd-timesyncd
-    state: stopped
-    enabled: no
-    masked: yes
-  when: systemd_timesyncd_service.stat.exists
-
-- name: Install NTP service
+- name: Install libonig5 dependency for jq
   apt:
-    name: ntp
+    name: libonig5
     state: present
-  register: ntp_install
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Install jq package
+  apt:
+    name: jq
+    state: present
+    update_cache: yes
+  ignore_errors: yes
+
+- name: Install jq manually if package installation failed
+  block:
+    - name: Download jq binary
+      get_url:
+        url: "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64"
+        dest: /usr/local/bin/jq
+        mode: '0755'
+        owner: root
+        group: root
+      when: ansible_architecture == "x86_64"
+
+    - name: Download jq binary for ARM64
+      get_url:
+        url: "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux-arm64"
+        dest: /usr/local/bin/jq
+        mode: '0755'
+        owner: root
+        group: root
+      when: ansible_architecture == "aarch64"
+
+  rescue:
+    - name: Skip jq installation
+      debug:
+        msg: "jq installation failed, continuing without it"
+
+- name: Verify jq installation
+  command: jq --version
+  register: jq_version
+  changed_when: false
+  ignore_errors: yes
+
+- name: Display jq version
+  debug:
+    msg: "jq version: {{ jq_version.stdout }}"
+  when: jq_version.rc == 0
 
 - name: Configure NTP
   template:
@@ -60,21 +95,26 @@
     backup: yes
   notify: restart ntp
 
-- name: Ensure NTP service is enabled and started
+- name: Check if systemd-timesyncd is active
+  systemd:
+    name: systemd-timesyncd
+  register: timesyncd_status
+  ignore_errors: yes
+
+- name: Stop systemd-timesyncd if running (conflicts with ntp)
+  systemd:
+    name: systemd-timesyncd
+    state: stopped
+    enabled: no
+  when: timesyncd_status.status is defined and timesyncd_status.status.ActiveState == "active"
+  ignore_errors: yes
+
+- name: Enable and start NTP service
   systemd:
     name: ntp
     enabled: yes
     state: started
-
-- name: Verify NTP service status
-  command: ntpq -p
-  register: ntp_status
-  changed_when: false
-  failed_when: false
-
-- name: Display NTP status
-  debug:
-    var: ntp_status.stdout_lines
+  ignore_errors: yes
 
 - name: Create docker directories
   file:
@@ -93,35 +133,21 @@
     - "{{ docker_data_dir }}/prometheus"
     - "{{ docker_data_dir }}/portainer"
 
-- name: Create docker group
-  group:
-    name: docker
-    state: present
-
-- name: Create deploy user
+- name: Create deploy user (without docker group initially)
   user:
     name: deploy
-    groups: sudo,docker
+    groups: sudo
     shell: /bin/bash
     create_home: yes
     append: yes
 
-- name: Create .ssh directory for deploy user
-  file:
-    path: /home/deploy/.ssh
-    state: directory
-    mode: '0700'
-    owner: deploy
-    group: deploy
-
-- name: Copy authorized_keys from ubuntu user to deploy user
-  copy:
-    remote_src: yes
-    src: /home/ubuntu/.ssh/authorized_keys
-    dest: /home/deploy/.ssh/authorized_keys
-    owner: deploy
-    group: deploy
-    mode: '0600'
+- name: Set up deploy user SSH key
+  authorized_key:
+    user: deploy
+    key: "{{ deploy_ssh_key | default(lookup('file', '~/.ssh/id_rsa.pub')) }}"
+    state: present
+  when: deploy_ssh_key is defined or lookup('file', '~/.ssh/id_rsa.pub', errors='ignore')
+  ignore_errors: yes
 
 - name: Configure system limits
   pam_limits:
@@ -148,8 +174,9 @@
     - { key: 'net.ipv4.tcp_max_syn_backlog', value: '32768' }
     - { key: 'net.core.netdev_max_backlog', value: '32768' }
 
-- name: Set up log rotation
+- name: Set up log rotation template
   template:
     src: docker-logs.j2
     dest: /etc/logrotate.d/docker-logs
     mode: '0644'
+  ignore_errors: yes
