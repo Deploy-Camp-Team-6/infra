@@ -1,0 +1,31 @@
+---
+- name: Create MLOps stack compose file
+  template:
+    src: mlops-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/mlops-stack.yml"
+    mode: '0644'
+
+- name: Deploy MLOps stack
+  docker_stack:
+    name: mlops
+    compose:
+      - "{{ docker_compose_dir }}/mlops-stack.yml"
+    state: present
+
+- name: Wait for MLflow to be ready
+  uri:
+    url: "https://{{ mlops_domain }}"
+    method: GET
+    status_code: 200
+    validate_certs: false
+  retries: 30
+  delay: 10
+  register: mlflow_health
+  until: mlflow_health.status == 200
+
+- name: Display MLOps information
+  debug:
+    msg: |
+      MLOps Stack deployed successfully!
+      MLflow UI: https://{{ mlops_domain }}
+      MinIO Console: https://{{ minio_domain }}

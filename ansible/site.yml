@@ -20,6 +20,7 @@
     - docker-swarm
     - traefik
     - portainer
+    - mlops
 
   post_tasks:
     - name: Display deployment summary

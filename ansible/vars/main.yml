@@ -6,6 +6,8 @@ grafana_domain: "grafana.{{ base_domain }}"
 portainer_domain: "portainer.{{ base_domain }}"
 prometheus_domain: "prometheus.{{ base_domain }}"
 whoami_domain: "whoami.{{ base_domain }}"
+mlops_domain: "mlflow.{{ base_domain }}"
+minio_domain: "minio.{{ base_domain }}"
 
 # System Configuration
 timezone: "UTC"
