@@ -95,11 +95,10 @@
   debug:
     msg: "Docker version: {{ docker_version.stdout }}"
 
-- name: Install Docker Python library
+- name: Install Docker Python library for Ansible
   pip:
     name:
       - docker
-      - docker-compose
       - jsondiff
     state: present
     executable: pip3

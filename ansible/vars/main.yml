@@ -1,10 +1,8 @@
 ---
 # Domain Configuration
-base_domain: "fraudai.cloud"
+base_domain: "yourdomain.com" # <-- Replace with your domain
 traefik_domain: "traefik.{{ base_domain }}"
-grafana_domain: "grafana.{{ base_domain }}"
 portainer_domain: "portainer.{{ base_domain }}"
-prometheus_domain: "prometheus.{{ base_domain }}"
 whoami_domain: "whoami.{{ base_domain }}"
 
 # System Configuration
@@ -50,15 +48,8 @@ docker_data_dir: "{{ docker_dir }}/data"
 # Traefik Configuration
 traefik_version: "v3.1.2"
 traefik_log_level: "INFO"
-acme_email: "bensatriya3@gmail.com"
+acme_email: "youremail@yourdomain.com" # <-- Replace with your email for Let's Encrypt certificates
 traefik_admin_password: "{{ traefik_admin_password }}"
-
-# Monitoring Configuration
-grafana_version: "latest"
-prometheus_version: "latest"
-node_exporter_version: "latest"
-cadvisor_version: "latest"
-alertmanager_version: "latest"
 
 # Portainer Configuration
 portainer_version: "latest"

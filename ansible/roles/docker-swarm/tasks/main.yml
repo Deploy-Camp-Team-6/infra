@@ -8,13 +8,10 @@
   docker_swarm:
     state: present
     advertise_addr: "{{ docker_swarm_addr }}"
-    listen_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+    listen_addrs:
+      - "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
   register: swarm_init
   when: not swarm_info.can_talk_to_docker or not swarm_info.docker_swarm_active
-
-- name: Get Swarm info after initialization
-  docker_swarm_info:
-  register: swarm_facts
 
 - name: Create overlay networks
   docker_network:
@@ -24,7 +21,6 @@
     scope: swarm
   loop:
     - traefik-public
-    - monitoring
     - portainer-agent
 
 - name: Label manager nodes
@@ -32,7 +28,6 @@
     hostname: "{{ ansible_hostname }}"
     labels:
       node.role: manager
-      monitoring: "true"
   when: node_role == 'manager'
 
 - name: Create stack deployment script
@@ -40,14 +35,3 @@
     src: deploy-stacks.sh.j2
     dest: /usr/local/bin/deploy-stacks.sh
     mode: '0755'
-
-- name: Display Swarm join token for workers
-  debug:
-    msg: |
-      Swarm initialized successfully!
-      Worker token: {{ swarm_facts.swarm_facts.JoinTokens.Worker | default('Run: docker swarm join-token worker') }}
-      Manager token: {{ swarm_facts.swarm_facts.JoinTokens.Manager | default('Run: docker swarm join-token manager') }}
-      
-      To join workers, run:
-      docker swarm join --token {{ swarm_facts.swarm_facts.JoinTokens.Worker | default('GET_TOKEN_FROM_MANAGER') }} {{ docker_swarm_addr }}:{{ docker_swarm_port }}
-  when: swarm_facts is defined and swarm_facts.docker_swarm_active
