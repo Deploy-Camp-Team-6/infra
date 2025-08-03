@@ -2,10 +2,10 @@
 # Domain Configuration
 base_domain: "fraudai.cloud"
 traefik_domain: "traefik.{{ base_domain }}"
-grafana_domain: "grafana.{{ base_domain }}"
 portainer_domain: "portainer.{{ base_domain }}"
-prometheus_domain: "prometheus.{{ base_domain }}"
 whoami_domain: "whoami.{{ base_domain }}"
+mlops_domain: "mlflow.{{ base_domain }}"
+minio_domain: "minio.{{ base_domain }}"
 
 # System Configuration
 timezone: "UTC"
@@ -53,12 +53,27 @@ traefik_log_level: "INFO"
 acme_email: "bensatriya3@gmail.com"
 traefik_admin_password: "{{ traefik_admin_password }}"
 
-# Monitoring Configuration
-grafana_version: "latest"
-prometheus_version: "latest"
-node_exporter_version: "latest"
-cadvisor_version: "latest"
-alertmanager_version: "latest"
+# Image versions
+mlflow_image: "ghcr.io/mlflow/mlflow"
+mlflow_version: "v2.14.1"
+postgres_image: "postgres"
+postgres_version: "16"
+minio_image: "minio/minio"
+minio_version: "RELEASE.2024-07-23T09-23-27Z"
+
+# MLflow configuration
+mlflow_backend_store_uri: "postgresql://mlflow:{{ mlflow_postgres_password }}@postgres:5432/mlflow"
+mlflow_default_artifact_root: "s3://mlflow/"
+
+# MinIO configuration
+minio_root_user: "{{ minio_root_user }}"
+minio_root_password: "{{ minio_root_password }}"
+minio_bucket_name: "mlflow"
+
+# PostgreSQL configuration
+postgres_user: "mlflow"
+postgres_password: "{{ mlflow_postgres_password }}"
+postgres_db: "mlflow"
 
 # Portainer Configuration
 portainer_version: "latest"
