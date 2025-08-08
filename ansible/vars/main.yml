@@ -55,11 +55,11 @@ traefik_admin_password: "{{ traefik_admin_password }}"
 
 # Image versions
 mlflow_image: "ghcr.io/mlflow/mlflow"
-mlflow_version: "v2.14.1"
+mlflow_version: "v3.1.4"
 postgres_image: "postgres"
 postgres_version: "16"
 minio_image: "minio/minio"
-minio_version: "RELEASE.2024-07-23T09-23-27Z"
+minio_version: "RELEASE.2025-02-18T16-25-55Z"
 
 # MLflow configuration
 mlflow_backend_store_uri: "postgresql://mlflow:{{ mlflow_postgres_password }}@postgres:5432/mlflow"
