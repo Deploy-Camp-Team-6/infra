@@ -18,8 +18,6 @@
     method: GET
     status_code: 200
     validate_certs: false
-    headers:
-      Authorization: "Basic {{ (basic_auth_admin + ':' + basic_auth_password) | b64encode }}"
   retries: 30
   delay: 10
   register: mlflow_health
