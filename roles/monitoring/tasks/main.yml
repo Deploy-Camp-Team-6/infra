@@ -1,0 +1,46 @@
+---
+- name: Create monitoring directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ docker_data_dir }}/grafana"
+    - "{{ docker_data_dir }}/loki"
+    - "{{ docker_data_dir }}/alloy"
+
+- name: Create Alloy configuration
+  template:
+    src: alloy-config.alloy.j2
+    dest: "{{ docker_data_dir }}/alloy/config.alloy"
+    mode: '0644'
+
+- name: Create monitoring stack compose file
+  template:
+    src: monitoring-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/monitoring-stack.yml"
+    mode: '0644'
+
+- name: Deploy monitoring stack
+  docker_stack:
+    name: monitoring
+    compose:
+      - "{{ docker_compose_dir }}/monitoring-stack.yml"
+    state: present
+
+- name: Wait for Grafana to be ready
+  uri:
+    url: "https://{{ grafana_domain }}"
+    method: GET
+    status_code: 200
+    validate_certs: false
+  retries: 30
+  delay: 10
+  register: grafana_health
+  until: grafana_health.status == 200
+
+- name: Display Monitoring information
+  debug:
+    msg: |
+      Monitoring stack deployed successfully!
+      Grafana: https://{{ grafana_domain }}
