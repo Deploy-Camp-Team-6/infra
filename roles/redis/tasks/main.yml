@@ -1,0 +1,30 @@
+---
+- name: Create Redis directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ docker_data_dir }}/redis"
+    - "{{ docker_data_dir }}/redisinsight"
+
+- name: Create Redis stack compose file
+  ansible.builtin.template:
+    src: redis-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/redis-stack.yml"
+    mode: '0644'
+
+- name: Deploy Redis stack
+  community.docker.docker_stack:
+    name: redis
+    compose:
+      - "{{ docker_compose_dir }}/redis-stack.yml"
+    state: present
+
+- name: Display Redis information
+  ansible.builtin.debug:
+    msg: |
+      Redis and Redis Insight deployed successfully!
+      Redis: internal network 'redis' at port 6379.
+      Redis Insight UI: https://{{ redis_domain }}
+      Password stored in vars/secrets.yml

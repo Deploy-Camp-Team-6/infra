@@ -21,6 +21,7 @@
     - traefik
     - portainer
     - monitoring
+    - redis
     - mlops
 
   post_tasks:

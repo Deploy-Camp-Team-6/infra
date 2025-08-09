@@ -1,6 +1,6 @@
 # Docker Swarm Infrastructure Deployment
 
-This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik, Portainer, and a Grafana monitoring stack (Grafana, Loki, Alloy).
+This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik, Portainer, Redis, Redis Insight and Grafana monitoring stack (Grafana, Loki, Alloy).
 
 ## Prerequisites
 
@@ -62,6 +62,9 @@ After deployment:
 - **Traefik Dashboard**: `https://traefik.yourdomain.com`
 - **Grafana**: `https://grafana.yourdomain.com`
 - **Portainer**: `https://portainer.yourdomain.com`
+- **Prometheus**: `https://prometheus.yourdomain.com`
+- **Redis**: internal service available on port `6379`
+- **Redis Insight**: `https://redis.yourdomain.com`
 
 ## Directory Structure
 
@@ -83,6 +86,7 @@ After deployment:
 │   ├── portainer/
 │   ├── monitoring/
 │   └── mlops/
+│   └── redis/
 └── scripts/
     ├── scale-service.sh
     └── backup.sh

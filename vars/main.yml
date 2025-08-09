@@ -6,6 +6,7 @@ portainer_domain: "portainer.{{ base_domain }}"
 whoami_domain: "whoami.{{ base_domain }}"
 mlops_domain: "mlflow.{{ base_domain }}"
 minio_domain: "minio.{{ base_domain }}"
+redis_domain: "redis.{{ base_domain }}"
 
 # System Configuration
 timezone: "UTC"
@@ -77,6 +78,11 @@ postgres_db: "mlflow"
 
 # Portainer Configuration
 portainer_version: "latest"
+
+# Redis Configuration
+redis_version: "7"
+redis_password: "{{ redis_password }}"
+redis_insight_version: "latest"
 
 # Logging Configuration
 log_driver: "json-file"
