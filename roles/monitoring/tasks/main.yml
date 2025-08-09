@@ -1,13 +1,20 @@
 ---
 - name: Create monitoring directories
   file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: directory
-    mode: '0755'
+    mode: "{{ item.mode | default('0755') }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
   loop:
-    - "{{ docker_data_dir }}/grafana"
-    - "{{ docker_data_dir }}/loki"
-    - "{{ docker_data_dir }}/alloy"
+    - path: "{{ docker_data_dir }}/grafana"
+      owner: 472
+      group: 472
+    - path: "{{ docker_data_dir }}/grafana/plugins"
+      owner: 472
+      group: 472
+    - path: "{{ docker_data_dir }}/loki"
+    - path: "{{ docker_data_dir }}/alloy"
 
 - name: Create Alloy configuration
   template:
