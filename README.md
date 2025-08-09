@@ -1,6 +1,6 @@
 # Docker Swarm Infrastructure Deployment
 
-This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik, monitoring stack (Prometheus/Grafana), and Portainer.
+This Ansible playbook deploys a production-ready Docker Swarm infrastructure with Traefik, and Portainer.
 
 ## Prerequisites
 
@@ -81,7 +81,6 @@ After deployment:
 │   ├── docker/
 │   ├── docker-swarm/
 │   ├── traefik/
-│   ├── monitoring/
 │   └── portainer/
 └── scripts/
     ├── deploy.sh
@@ -97,14 +96,6 @@ After deployment:
 - **File Integrity**: AIDE monitoring
 - **Audit Logging**: System activity tracking
 - **Docker Security**: Non-root containers, secrets management
-
-## Monitoring Stack
-
-- **Prometheus**: Metrics collection and alerting
-- **Grafana**: Visualization dashboards
-- **Node Exporter**: Host metrics
-- **cAdvisor**: Container metrics
-- **AlertManager**: Alert routing
 
 ## Scaling to Multi-Node
 
@@ -203,7 +194,6 @@ echo "Backup completed: $BACKUP_DIR"
 1. **Services not starting**: Check logs with `docker service logs <service>`
 2. **Network issues**: Verify overlay networks with `docker network ls`
 3. **SSL certificates**: Check Traefik logs for ACME challenges
-4. **Monitoring data**: Verify Prometheus targets are up
 
 ### Useful Commands
 
@@ -233,9 +223,8 @@ docker node promote <node_name>
 2. **Resource Limits**: Set memory/CPU limits for services
 3. **Health Checks**: Implement health checks for all services
 4. **Backup Strategy**: Regular backups of data volumes
-5. **Monitoring**: Set up alerting for critical metrics
-6. **Updates**: Regular security updates and image updates
-7. **Documentation**: Keep deployment docs updated
+5. **Updates**: Regular security updates and image updates
+6. **Documentation**: Keep deployment docs updated
 
 ## Security Checklist
 
@@ -249,7 +238,6 @@ docker node promote <node_name>
 - [ ] Non-root containers where possible
 - [ ] Regular security audits scheduled
 - [ ] SSL/TLS certificates configured
-- [ ] File integrity monitoring active
 
 ## License
 
