@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  loki:
+    image: "{{ loki_image }}:{{ loki_version }}"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+    volumes:
+      - {{ docker_data_dir }}/loki:/loki
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+
+  grafana:
+    image: "{{ grafana_image }}:{{ grafana_version }}"
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_SERVER_ROOT_URL: "https://{{ grafana_domain }}"
+    networks:
+      - monitoring
+      - traefik-public
+    volumes:
+      - {{ docker_data_dir }}/grafana:/var/lib/grafana
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.grafana.rule=Host(`{{ grafana_domain }}`)
+        - traefik.http.routers.grafana.entrypoints=websecure
+        - traefik.http.routers.grafana.tls.certresolver=leresolver
+        - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+  alloy:
+    image: "{{ alloy_image }}:{{ alloy_version }}"
+    command: ["run", "/etc/alloy/config.alloy"]
+    volumes:
+      - {{ docker_data_dir }}/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+
+networks:
+  monitoring:
+    external: true
+  traefik-public:
+    external: true
