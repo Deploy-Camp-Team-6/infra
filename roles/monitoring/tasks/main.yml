@@ -21,6 +21,13 @@
     dest: "{{ docker_compose_dir }}/monitoring-stack.yml"
     mode: '0644'
 
+- name: Ensure monitoring overlay network exists
+  docker_network:
+    name: monitoring
+    driver: overlay
+    attachable: yes
+    scope: swarm
+
 - name: Deploy monitoring stack
   docker_stack:
     name: monitoring
