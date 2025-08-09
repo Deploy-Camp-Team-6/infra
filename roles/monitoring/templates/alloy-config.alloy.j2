@@ -15,8 +15,8 @@ loki.write "default" {
 loki.source.docker "docker" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.docker.containers.targets
-  # Loki requires at least one label pair per stream. Assign a static
-  # "job" label so that container logs are accepted by the distributor.
+  // Loki requires at least one label pair per stream. Assign a static
+  // "job" label so that container logs are accepted by the distributor.
   labels     = { job = "docker" }
   forward_to = [loki.write.default.receiver]
 }
