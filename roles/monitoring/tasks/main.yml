@@ -6,8 +6,18 @@
     mode: '0755'
   loop:
     - "{{ docker_data_dir }}/grafana"
-    - "{{ docker_data_dir }}/loki"
     - "{{ docker_data_dir }}/alloy"
+
+- name: Create Loki directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "10001"
+    group: "10001"
+    mode: '0755'
+  loop:
+    - "{{ docker_data_dir }}/loki"
+    - "{{ docker_data_dir }}/loki/rules"
 
 - name: Create Alloy configuration
   template:
@@ -25,7 +35,7 @@
   docker_network:
     name: monitoring
     driver: overlay
-    attachable: yes
+    attachable: true
     scope: swarm
 
 - name: Deploy monitoring stack
@@ -34,6 +44,7 @@
     compose:
       - "{{ docker_compose_dir }}/monitoring-stack.yml"
     state: present
+    force_recreate: true
 
 - name: Wait for Grafana to be ready
   uri:
