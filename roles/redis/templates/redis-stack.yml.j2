@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  redis:
+    image: "redis:{{ redis_version | default('7') }}"
+    command: ["redis-server", "--requirepass", "{{ redis_password }}"]
+    volumes:
+      - {{ docker_data_dir }}/redis:/data
+    networks:
+      - redis
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+
+  redisinsight:
+    image: "redislabs/redisinsight:{{ redis_insight_version | default('latest') }}"
+    volumes:
+      - {{ docker_data_dir }}/redisinsight:/db
+    networks:
+      - redis
+      - traefik-public
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.services.redisinsight.loadbalancer.server.port=5540
+        - traefik.http.routers.redisinsight.rule=Host(`{{ redis_domain }}`)
+        - traefik.http.routers.redisinsight.entrypoints=websecure
+        - traefik.http.routers.redisinsight.tls=true
+        - traefik.http.routers.redisinsight.tls.certresolver=leresolver
+
+networks:
+  redis:
+    driver: overlay
+  traefik-public:
+    driver: overlay
+    external: true

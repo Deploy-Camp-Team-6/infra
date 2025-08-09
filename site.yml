@@ -20,6 +20,7 @@
     - docker-swarm
     - traefik
     - portainer
+    - redis
     - mlops
 
   post_tasks:
