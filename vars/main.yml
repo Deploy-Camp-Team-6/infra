@@ -57,7 +57,7 @@ traefik_admin_password: "{{ traefik_admin_password }}"
 
 # Image versions
 mlflow_image: "ghcr.io/mlflow/mlflow"
-mlflow_version: "v3.1.4"
+mlflow_version: "v2.10.2"
 postgres_image: "postgres"
 postgres_version: "16"
 minio_image: "minio/minio"
@@ -80,6 +80,7 @@ postgres_db: "mlflow"
 # Shared PostgreSQL database
 shared_postgres_user: "shared_user"
 shared_postgres_db: "shared_db"
+shared_postgres_password: "{{ shared_postgres_password }}"
 
 # Portainer Configuration
 portainer_version: "latest"
