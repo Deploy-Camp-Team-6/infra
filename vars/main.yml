@@ -30,6 +30,7 @@ ufw_rules:
   - { rule: 'allow', port: '7946', proto: 'tcp' }  # Docker Swarm
   - { rule: 'allow', port: '7946', proto: 'udp' }  # Docker Swarm
   - { rule: 'allow', port: '4789', proto: 'udp' }  # Docker Overlay
+  - { rule: 'allow', port: '5432', proto: 'tcp' }  # PostgreSQL
 
 # Docker Configuration
 docker_edition: ce
@@ -75,6 +76,10 @@ minio_bucket_name: "mlflow"
 postgres_user: "mlflow"
 postgres_password: "{{ mlflow_postgres_password }}"
 postgres_db: "mlflow"
+
+# Shared PostgreSQL database
+shared_postgres_user: "shared_user"
+shared_postgres_db: "shared_db"
 
 # Portainer Configuration
 portainer_version: "latest"
