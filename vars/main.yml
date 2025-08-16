@@ -75,6 +75,7 @@ minio_bucket_name: "mlflow"
 postgres_user: "mlflow"
 postgres_password: "{{ mlflow_postgres_password }}"
 postgres_db: "mlflow"
+postgres_initdb_dir: "{{ docker_compose_dir }}/postgresql-initdb"
 
 # Shared PostgreSQL database
 shared_postgres_user: "shared_user"

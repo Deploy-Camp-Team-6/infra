@@ -6,6 +6,18 @@
     attachable: true
     scope: swarm
 
+- name: Ensure PostgreSQL initdb directory exists
+  ansible.builtin.file:
+    path: "{{ postgres_initdb_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy shared database initialization SQL
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/init-shared-db.sql"
+    dest: "{{ postgres_initdb_dir }}/init-shared-db.sql"
+    mode: '0644'
+
 - name: Create PostgreSQL stack compose file
   ansible.builtin.template:
     src: postgresql-stack.yml.j2
