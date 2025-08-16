@@ -22,6 +22,7 @@
     - portainer
     - monitoring
     - redis
+    - postgresql
     - mlops
 
   post_tasks:

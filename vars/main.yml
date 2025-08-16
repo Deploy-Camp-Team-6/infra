@@ -30,7 +30,6 @@ ufw_rules:
   - { rule: 'allow', port: '7946', proto: 'tcp' }  # Docker Swarm
   - { rule: 'allow', port: '7946', proto: 'udp' }  # Docker Swarm
   - { rule: 'allow', port: '4789', proto: 'udp' }  # Docker Overlay
-  - { rule: 'allow', port: '5432', proto: 'tcp' }  # PostgreSQL
 
 # Docker Configuration
 docker_edition: ce

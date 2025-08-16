@@ -1,25 +1,6 @@
 version: "3.8"
 
 services:
-  postgres:
-    image: "{{ postgres_image }}:{{ postgres_version }}"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: "{{ postgres_user }}"
-      POSTGRES_PASSWORD: "{{ postgres_password }}"
-      POSTGRES_DB: "{{ postgres_db }}"
-    ports:
-      - target: 5432
-        published: 5432
-        mode: host
-    networks:
-      - mlops-internal
-    deploy:
-      placement:
-        constraints:
-          - node.role==manager
-
   minio:
     image: "{{ minio_image }}:{{ minio_version }}"
     volumes:
@@ -78,11 +59,10 @@ services:
         - traefik.http.routers.mlflow.tls.certresolver=leresolver
 
 volumes:
-  postgres_data:
   minio_data:
 
 networks:
   mlops-internal:
-    driver: overlay
+    external: true
   traefik-public:
     external: true
