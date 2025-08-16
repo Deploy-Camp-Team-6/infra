@@ -1,10 +1,10 @@
 version: "3.8"
 
 services:
-  postgres:
+  postgresql:
     image: "{{ postgres_image }}:{{ postgres_version }}"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgresql_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: "{{ postgres_user }}"
       POSTGRES_PASSWORD: "{{ postgres_password }}"
@@ -64,7 +64,7 @@ services:
       - mlops-internal
       - traefik-public
     depends_on:
-      - postgres
+      - postgresql
       - minio
     deploy:
       placement:
@@ -79,7 +79,7 @@ services:
         - traefik.http.routers.mlflow.tls.certresolver=leresolver
 
 volumes:
-  postgres_data:
+  postgresql_data:
   minio_data:
 
 networks:

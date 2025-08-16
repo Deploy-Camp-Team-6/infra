@@ -64,7 +64,7 @@ minio_image: "minio/minio"
 minio_version: "RELEASE.2025-02-18T16-25-55Z"
 
 # MLflow configuration
-mlflow_backend_store_uri: "postgresql://mlflow:{{ mlflow_postgres_password }}@postgres:5432/mlflow"
+mlflow_backend_store_uri: "postgresql://mlflow:{{ mlflow_postgres_password }}@postgresql:5432/mlflow"
 mlflow_default_artifact_root: "s3://mlflow/"
 
 # MinIO configuration
