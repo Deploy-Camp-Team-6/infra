@@ -18,6 +18,7 @@
     - security
     - docker
     - docker-swarm
+    - docker-secrets
     - traefik
     - portainer
     - monitoring

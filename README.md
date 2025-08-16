@@ -43,6 +43,27 @@ Create `vars/secrets.yml` (encrypt with ansible-vault):
 ansible-vault create vars/secrets.yml
 ```
 
+#### Add or Update Secrets
+
+Place secret values under the `docker_secrets` dictionary in `vars/secrets.yml`:
+
+```yaml
+docker_secrets:
+  my_secret: "super-secret-value"
+```
+
+Encrypt or edit the file using Ansible Vault:
+
+```bash
+ansible-vault encrypt vars/secrets.yml  # use `ansible-vault edit` to modify
+```
+
+Load the secrets into the Swarm:
+
+```bash
+ansible-playbook site.yml --tags docker-secrets
+```
+
 ### 4. Deploy Infrastructure
 
 ```bash

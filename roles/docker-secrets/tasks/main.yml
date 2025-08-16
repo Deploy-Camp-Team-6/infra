@@ -1,0 +1,21 @@
+---
+- name: Ensure Docker secrets directory exists
+  file:
+    path: "{{ docker_secrets_dir }}"
+    state: directory
+    mode: '0750'
+
+- name: Write secrets to files
+  copy:
+    dest: "{{ docker_secrets_dir }}/{{ item.key }}"
+    content: "{{ item.value }}"
+    mode: '0600'
+  loop: "{{ docker_secrets | dict2items }}"
+
+- name: Ensure Docker secrets present in swarm
+  community.docker.docker_secret:
+    name: "{{ item.key }}"
+    data_src: "{{ docker_secrets_dir }}/{{ item.key }}"
+    state: present
+    force: yes
+  loop: "{{ docker_secrets | dict2items }}"
