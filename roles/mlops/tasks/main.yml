@@ -5,47 +5,19 @@
     dest: "{{ docker_compose_dir }}/mlops-stack.yml"
     mode: '0644'
 
+- name: Ensure mlops-internal network exists
+  community.docker.docker_network:
+    name: mlops-internal
+    driver: overlay
+    attachable: true
+    scope: swarm
+
 - name: Deploy MLOps stack
   docker_stack:
     name: mlops
     compose:
       - "{{ docker_compose_dir }}/mlops-stack.yml"
     state: present
-
-- name: Wait for PostgreSQL to be ready
-  wait_for:
-    host: "127.0.0.1"
-    port: 5432
-    delay: 5
-    timeout: 60
-  run_once: true
-
-- name: Install psycopg2 for PostgreSQL
-  pip:
-    name: psycopg2-binary
-    state: present
-  become: yes
-  run_once: true
-  when: ansible_python_interpreter is defined
-
-- name: Ensure shared PostgreSQL database exists
-  community.postgresql.postgresql_db:
-    name: "{{ shared_postgres_db }}"
-    login_host: "127.0.0.1"
-    login_user: "{{ postgres_user }}"
-    login_password: "{{ postgres_password }}"
-  run_once: true
-
-- name: Ensure shared PostgreSQL user exists
-  community.postgresql.postgresql_user:
-    name: "{{ shared_postgres_user }}"
-    password: "{{ shared_postgres_password }}"
-    db: "{{ shared_postgres_db }}"
-    priv: "ALL"
-    login_host: "127.0.0.1"
-    login_user: "{{ postgres_user }}"
-    login_password: "{{ postgres_password }}"
-  run_once: true
 
 - name: Wait for MLflow to be ready
   uri:
@@ -65,6 +37,6 @@
       MLOps Stack deployed successfully!
       MLflow UI: https://{{ mlops_domain }}
       MinIO Console: https://{{ minio_domain }}
-      Shared PostgreSQL Host: {{ inventory_hostname }}:5432
+      Shared PostgreSQL available via internal network 'mlops-internal'
       Shared Database: {{ shared_postgres_db }}
       Shared User: {{ shared_postgres_user }}
