@@ -78,6 +78,7 @@ postgres_db: "mlflow"
 postgres_initdb_dir: "{{ docker_compose_dir }}/postgresql-initdb"
 
 # Shared PostgreSQL database
+postgres_host: "postgres"
 shared_postgres_user: "shared_user"
 shared_postgres_db: "shared_db"
 shared_postgres_password: "{{ shared_postgres_password }}"

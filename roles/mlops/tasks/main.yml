@@ -12,6 +12,59 @@
     attachable: true
     scope: swarm
 
+# Wait for PostgreSQL from inside the overlay network
+- name: Wait for PostgreSQL readiness (inside overlay)
+  community.docker.docker_container:
+    name: wait-for-postgres
+    image: "postgres:16"          # debian-based; has bash/pg_isready
+    command: >
+      bash -lc 'i=0; while [ $i -lt 120 ]; do
+        pg_isready -h postgresql_postgres -p 5432 && exit 0;
+        sleep 2; i=$((i+1));
+      done; exit 1'
+    detach: false
+    auto_remove: false
+    networks:
+      - name: mlops-internal
+  register: wait_pg
+
+# Verify login using psql (also inside overlay)
+- name: Verify PostgreSQL login (inside overlay)
+  community.docker.docker_container:
+    name: ping-postgres
+    image: "postgres:16"
+    env:
+      PGPASSWORD: "{{ postgres_password }}"
+    command: >
+      bash -lc 'psql -h postgresql_postgres -p 5432 -U {{ postgres_user }} -d {{ postgres_db }} -c "SELECT 1"'
+    detach: false
+    auto_remove: false
+    networks:
+      - name: mlops-internal
+  register: ping_pg
+
+# Optional: show logs if something fails
+- name: Show readiness output if failed
+  debug:
+    var: wait_pg
+  when: wait_pg is failed
+
+- name: Show psql output if failed
+  debug:
+    var: ping_pg
+  when: ping_pg is failed
+
+# Cleanup helpers
+- name: Remove helper containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+    force_kill: true
+  loop:
+    - wait-for-postgres
+    - ping-postgres
+  ignore_errors: true
+
 - name: Deploy MLOps stack
   community.docker.docker_stack:
     name: mlops
