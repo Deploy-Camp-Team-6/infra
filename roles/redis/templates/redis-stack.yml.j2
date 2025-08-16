@@ -7,7 +7,7 @@ services:
     volumes:
       - {{ docker_data_dir }}/redis:/data
     networks:
-      - redis
+      - redis-internal
     deploy:
       placement:
         constraints:
@@ -18,7 +18,7 @@ services:
     volumes:
       - {{ docker_data_dir }}/redisinsight:/db
     networks:
-      - redis
+      - redis-internal
       - traefik-public
     deploy:
       placement:
@@ -32,8 +32,8 @@ services:
         - traefik.http.routers.redisinsight.tls=true
         - traefik.http.routers.redisinsight.tls.certresolver=leresolver
 
-networks:
-  redis:
+networks: 
+  redis-internal:
     driver: overlay
     internal: true
   traefik-public:

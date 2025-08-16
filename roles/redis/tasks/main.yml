@@ -8,6 +8,14 @@
     - "{{ docker_data_dir }}/redis"
     - "{{ docker_data_dir }}/redisinsight"
 
+- name: Ensure Redis internal network exists
+  community.docker.docker_network:
+    name: redis-internal
+    driver: overlay
+    internal: yes
+    attachable: yes
+    state: present
+
 - name: Create Redis stack compose file
   ansible.builtin.template:
     src: redis-stack.yml.j2
