@@ -35,6 +35,7 @@ services:
 networks:
   redis:
     driver: overlay
+    internal: true
   traefik-public:
     driver: overlay
     external: true
