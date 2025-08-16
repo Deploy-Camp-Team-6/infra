@@ -13,11 +13,14 @@
     state: present
 
 - name: Wait for PostgreSQL to be ready
-  wait_for:
-    host: "127.0.0.1"
-    port: 5432
-    delay: 5
-    timeout: 60
+  shell: |
+    docker exec $(docker ps --filter name=mlops_postgres -q | head -n 1) \
+    pg_isready -U {{ postgres_user }}
+  register: postgres_health
+  retries: 30
+  delay: 5
+  until: postgres_health.rc == 0
+  changed_when: false
   run_once: true
 
 - name: Install psycopg2 for PostgreSQL
