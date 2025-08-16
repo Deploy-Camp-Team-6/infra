@@ -13,7 +13,7 @@
     scope: swarm
 
 - name: Deploy MLOps stack
-  docker_stack:
+  community.docker.docker_stack:
     name: mlops
     compose:
       - "{{ docker_compose_dir }}/mlops-stack.yml"
