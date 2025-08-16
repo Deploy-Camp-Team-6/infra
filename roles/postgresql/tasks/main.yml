@@ -1,0 +1,20 @@
+---
+- name: Ensure mlops-internal overlay network exists
+  community.docker.docker_network:
+    name: mlops-internal
+    driver: overlay
+    attachable: true
+    scope: swarm
+
+- name: Create PostgreSQL stack compose file
+  ansible.builtin.template:
+    src: postgresql-stack.yml.j2
+    dest: "{{ docker_compose_dir }}/postgresql-stack.yml"
+    mode: '0644'
+
+- name: Deploy PostgreSQL stack
+  community.docker.docker_stack:
+    name: postgresql
+    compose:
+      - "{{ docker_compose_dir }}/postgresql-stack.yml"
+    state: present
