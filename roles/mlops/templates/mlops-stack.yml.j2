@@ -40,12 +40,13 @@ services:
       AWS_ACCESS_KEY_ID: "{{ minio_root_user }}"
       AWS_SECRET_ACCESS_KEY: "{{ minio_root_password }}"
       MLFLOW_FLASK_SERVER_SECRET_KEY: "{{ mlflow_flask_server_secret_key }}"
-    command: bash -c "pip install psycopg2-binary mlflow[auth] && mlflow server --host 0.0.0.0 --port 5000 --workers 4 --app-name basic-auth"
+    command: bash -c "pip install psycopg2-binary mlflow[auth] && until nc -z postgres 5432; do echo 'Waiting for postgres...'; sleep 1; done && mlflow server --host 0.0.0.0 --port 5000 --workers 4 --app-name basic-auth"
     networks:
       - mlops-internal
       - traefik-public
     depends_on:
       - minio
+      - postgres
     deploy:
       placement:
         constraints:
