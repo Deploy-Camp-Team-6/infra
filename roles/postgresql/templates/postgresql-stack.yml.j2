@@ -5,9 +5,7 @@ services:
     image: "{{ postgres_image }}:{{ postgres_version }}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-{% if postgres_initdb_dir is defined %}
       - "{{ postgres_initdb_dir }}:/docker-entrypoint-initdb.d"
-{% endif %}
     environment:
       POSTGRES_USER: "{{ postgres_user }}"
       POSTGRES_PASSWORD: "{{ postgres_password }}"
