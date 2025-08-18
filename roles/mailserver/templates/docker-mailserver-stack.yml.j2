@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    hostname: {{ mail_hostname.split('.')[0] }}
+    domainname: {{ base_domain }}
+    env_file: {{ docker_data_dir }}/mailserver/config/mailserver.env
+    volumes:
+      - {{ docker_data_dir }}/mailserver/data:/var/mail
+      - {{ docker_data_dir }}/mailserver/state:/var/mail-state
+      - {{ docker_data_dir }}/mailserver/log:/var/log/mail
+      - {{ docker_data_dir }}/mailserver/config:/tmp/docker-mailserver
+    ports:
+      - "25:25"
+      - "587:587"
+      - "993:993"
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure

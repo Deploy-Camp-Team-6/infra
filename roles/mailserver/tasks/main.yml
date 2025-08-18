@@ -1,0 +1,105 @@
+---
+- name: Ensure mailserver directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ docker_data_dir }}/mailserver"
+    - "{{ docker_data_dir }}/mailserver/data"
+    - "{{ docker_data_dir }}/mailserver/state"
+    - "{{ docker_data_dir }}/mailserver/log"
+    - "{{ docker_data_dir }}/mailserver/config"
+
+- name: Create environment file for docker-mailserver
+  ansible.builtin.template:
+    src: mailserver.env.j2
+    dest: "{{ docker_data_dir }}/mailserver/config/mailserver.env"
+    mode: '0644'
+  when: mailserver_type == 'docker-mailserver'
+
+- name: Select stack template
+  ansible.builtin.set_fact:
+    mailserver_stack_template: "{{ mailserver_type }}-stack.yml.j2"
+
+- name: Create mailserver stack compose file
+  ansible.builtin.template:
+    src: "{{ mailserver_stack_template }}"
+    dest: "{{ docker_compose_dir }}/mailserver-stack.yml"
+    mode: '0644'
+
+- name: Ensure admin email account exists (docker-mailserver)
+  ansible.builtin.shell: |
+    set -o pipefail
+    if grep -q '^{{ mail_admin }}|' {{ docker_data_dir }}/mailserver/config/postfix-accounts.cf 2>/dev/null; then
+      echo 'exists'
+    else
+      docker run --rm -v {{ docker_data_dir }}/mailserver/config:/tmp/docker-mailserver \
+        docker.io/mailserver/docker-mailserver:latest setup email add {{ mail_admin }} {{ mail_admin_password }}
+      echo 'created'
+    fi
+  register: mailserver_account_create
+  changed_when: "'created' in mailserver_account_create.stdout"
+  args:
+    executable: /bin/bash
+  when: mailserver_type == 'docker-mailserver'
+
+- name: Generate DKIM keys (docker-mailserver)
+  ansible.builtin.command: >-
+    docker run --rm -v {{ docker_data_dir }}/mailserver/config:/tmp/docker-mailserver
+    docker.io/mailserver/docker-mailserver:latest setup config dkim
+  args:
+    creates: "{{ docker_data_dir }}/mailserver/config/opendkim/keys/{{ base_domain }}/mail.txt"
+  when: mailserver_type == 'docker-mailserver'
+
+- name: Deploy mailserver stack
+  community.docker.docker_stack:
+    name: mailserver
+    compose:
+      - "{{ docker_compose_dir }}/mailserver-stack.yml"
+    state: present
+
+- name: Wait for mailserver ports
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ item }}"
+    timeout: 60
+  loop:
+    - 25
+    - 587
+    - 993
+
+- name: Install swaks for smoke test
+  ansible.builtin.apt:
+    name: swaks
+    state: present
+
+- name: Send test email
+  ansible.builtin.command: >-
+    swaks --to {{ mail_test_recipient }} --from test@{{ base_domain }} \
+          --server 127.0.0.1 --port 25 --auth LOGIN \
+          --auth-user {{ mail_admin }} --auth-password {{ mail_admin_password }}
+  register: mailserver_smoke_test
+  changed_when: false
+  failed_when: mailserver_smoke_test.rc != 0
+
+- name: Read DKIM record
+  ansible.builtin.slurp:
+    src: "{{ docker_data_dir }}/mailserver/config/opendkim/keys/{{ base_domain }}/mail.txt"
+  register: mailserver_dkim_record
+  when: mailserver_type == 'docker-mailserver'
+
+- name: Display DNS records
+  ansible.builtin.debug:
+    msg: |
+      Configure DNS records for {{ base_domain }}:
+      - MX: 10 {{ mail_hostname }}
+      - SPF: "v=spf1 mx ~all"
+      - DKIM: "{{ (mailserver_dkim_record.content | b64decode).strip() if mailserver_type == 'docker-mailserver' else 'generated-key' }}"
+      - DMARC: "v=DMARC1; p=none; rua=mailto:dmarc@{{ base_domain }}; ruf=mailto:dmarc@{{ base_domain }}"
+      - MTA-STS: "v=STSv1; id=2023010100"
+      - TLS-RPT: "v=TLSRPTv1; rua=mailto:tlsrpt@{{ base_domain }}"
+
+- name: Show smoke test result
+  ansible.builtin.debug:
+    var: mailserver_smoke_test.stdout

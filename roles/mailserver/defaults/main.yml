@@ -1,0 +1,6 @@
+---
+mailserver_type: "docker-mailserver"  # options: docker-mailserver, mailu, mailcow
+mail_hostname: "mail.{{ base_domain }}"
+mail_admin: "postmaster@{{ base_domain }}"
+mail_admin_password: "ChangeMe123!"
+mail_test_recipient: "{{ mail_admin }}"
