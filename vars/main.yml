@@ -30,6 +30,9 @@ ufw_rules:
   - { rule: 'allow', port: '7946', proto: 'tcp' }  # Docker Swarm
   - { rule: 'allow', port: '7946', proto: 'udp' }  # Docker Swarm
   - { rule: 'allow', port: '4789', proto: 'udp' }  # Docker Overlay
+  - { rule: 'allow', port: '25', proto: 'tcp' }  # SMTP
+  - { rule: 'allow', port: '587', proto: 'tcp' }  # Submission
+  - { rule: 'allow', port: '993', proto: 'tcp' }  # IMAPS
 
 # Docker Configuration
 docker_edition: ce
@@ -104,3 +107,8 @@ loki_version: "3.0.0"
 alloy_image: "grafana/alloy"
 alloy_version: "latest"
 grafana_admin_password: "{{ grafana_admin_password }}"
+
+# Mailserver configuration
+mailserver_type: "docker-mailserver"  # options: docker-mailserver, mailu, mailcow
+mail_hostname: "mail.{{ base_domain }}"
+mail_admin: "postmaster@{{ base_domain }}"
